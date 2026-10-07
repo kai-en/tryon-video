@@ -26,6 +26,20 @@ ASSETS_DIR = PROJECT_ROOT / "assets"
 OUTPUT_DIR = PROJECT_ROOT / "output"
 
 
+def _dotenv_value(name: str) -> str | None:
+    """读取项目根目录 .env（仅本地、不提交）中的 KEY=VALUE，无需第三方依赖。"""
+    env_file = PROJECT_ROOT / ".env"
+    if not env_file.exists():
+        return None
+    for line in env_file.read_text(encoding="utf-8-sig").splitlines():
+        line = line.strip()
+        if line and not line.startswith("#") and "=" in line:
+            key, value = line.split("=", 1)
+            if key.strip() == name:
+                return value.strip().strip("'").strip('"') or None
+    return None
+
+
 def _key_from_opencode_auth() -> str | None:
     """兜底：从 opencode 的 auth.json 读取 Token Plan Key（本机开发便利）。"""
     auth = (
@@ -55,6 +69,7 @@ class Settings:
         key = (
             api_key
             or os.environ.get("TRYON_API_KEY")
+            or _dotenv_value("TRYON_API_KEY")
             or os.environ.get("ANTHROPIC_AUTH_TOKEN")
             or _key_from_opencode_auth()
         )
